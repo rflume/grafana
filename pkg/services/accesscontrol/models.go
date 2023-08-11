@@ -452,6 +452,16 @@ const (
 	ActionAlertingProvisioningReadSecrets = "alert.provisioning.secrets:read"
 	ActionAlertingProvisioningWrite       = "alert.provisioning:write"
 
+	// Alerting provisioning rules actions
+	ActionAlertingProvisioningRuleCreate = "alert.provisioning.rules:create"
+	ActionAlertingProvisioningRuleRead   = "alert.provisioning.rules:read"
+	ActionAlertingProvisioningRuleUpdate = "alert.provisioning.rules:write"
+	ActionAlertingProvisioningRuleDelete = "alert.provisioning.rules:delete"
+
+	// Alerting Provisioning Notification policies actions
+	ActionAlertingProvisioningNotificationsRead  = "alert.provisioning.notifications:read"
+	ActionAlertingProvisioningNotificationsWrite = "alert.provisioning.notifications:write"
+
 	// Feature Management actions
 	ActionFeatureManagementRead  = "featuremgmt.read"
 	ActionFeatureManagementWrite = "featuremgmt.write"

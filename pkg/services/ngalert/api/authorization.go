@@ -189,19 +189,57 @@ func (api *API) authorize(method, path string) web.Handler {
 			ac.EvalPermission(ac.ActionAlertingProvisioningReadSecrets), // organization scope
 		)
 
+	case http.MethodGet + "/api/v1/provisioning/alert-rules",
+		http.MethodGet + "/api/v1/provisioning/alert-rules/{UID}",
+		http.MethodGet + "/api/v1/provisioning/alert-rules/{UID}/export",
+		http.MethodGet + "/api/v1/provisioning/alert-rules/export":
+		eval = ac.EvalAny(
+			ac.EvalPermission(ac.ActionAlertingProvisioningRead),        // organization scope // TODO deprecated. remove in Grafana 11
+			ac.EvalPermission(ac.ActionAlertingProvisioningReadSecrets), // organization scope // TODO deprecated. remove in Grafana 11
+			ac.EvalPermission(ac.ActionAlertingProvisioningRuleRead, dashboards.ScopeFoldersProvider.GetResourceScopeUID(ac.Parameter(":UID"))),
+		)
+	case http.MethodGet + "/api/v1/provisioning/folder/{FolderUID}/rule-groups/{Group}",
+		http.MethodGet + "/api/v1/provisioning/folder/{FolderUID}/rule-groups/{Group}/export":
+		eval = ac.EvalAny(
+			ac.EvalPermission(ac.ActionAlertingProvisioningRead),        // organization scope // TODO deprecated. remove in Grafana 11
+			ac.EvalPermission(ac.ActionAlertingProvisioningReadSecrets), // organization scope // TODO deprecated. remove in Grafana 11
+			ac.EvalPermission(ac.ActionAlertingProvisioningRuleRead, dashboards.ScopeFoldersProvider.GetResourceScopeUID(ac.Parameter(":FolderUID"))),
+		)
+
 	case http.MethodGet + "/api/v1/provisioning/policies",
 		http.MethodGet + "/api/v1/provisioning/contact-points",
 		http.MethodGet + "/api/v1/provisioning/templates",
 		http.MethodGet + "/api/v1/provisioning/templates/{name}",
 		http.MethodGet + "/api/v1/provisioning/mute-timings",
-		http.MethodGet + "/api/v1/provisioning/mute-timings/{name}",
-		http.MethodGet + "/api/v1/provisioning/alert-rules",
-		http.MethodGet + "/api/v1/provisioning/alert-rules/{UID}",
-		http.MethodGet + "/api/v1/provisioning/alert-rules/export",
-		http.MethodGet + "/api/v1/provisioning/alert-rules/{UID}/export",
-		http.MethodGet + "/api/v1/provisioning/folder/{FolderUID}/rule-groups/{Group}",
-		http.MethodGet + "/api/v1/provisioning/folder/{FolderUID}/rule-groups/{Group}/export":
-		eval = ac.EvalAny(ac.EvalPermission(ac.ActionAlertingProvisioningRead), ac.EvalPermission(ac.ActionAlertingProvisioningReadSecrets)) // organization scope
+		http.MethodGet + "/api/v1/provisioning/mute-timings/{name}":
+		eval = ac.EvalAny(
+			ac.EvalPermission(ac.ActionAlertingProvisioningRead),              // organization scope // TODO deprecated. remove in Grafana 11
+			ac.EvalPermission(ac.ActionAlertingProvisioningReadSecrets),       // organization scope // TODO deprecated. remove in Grafana 11
+			ac.EvalPermission(ac.ActionAlertingProvisioningNotificationsRead), // organization scope
+		)
+
+	// Grafana-only Provisioning Write Paths
+	case http.MethodPost + "/api/v1/provisioning/alert-rules":
+		eval = ac.EvalAny(
+			ac.EvalPermission(ac.ActionAlertingProvisioningWrite),      // organization scope // TODO deprecated. remove in Grafana 11
+			ac.EvalPermission(ac.ActionAlertingProvisioningRuleCreate), // more granular permissions are enforced by the handler via "authorizeRuleChanges"
+		)
+	case http.MethodPut + "/api/v1/provisioning/alert-rules/{UID}":
+		eval = ac.EvalAny(
+			ac.EvalPermission(ac.ActionAlertingProvisioningWrite),      // organization scope // TODO deprecated. remove in Grafana 11
+			ac.EvalPermission(ac.ActionAlertingProvisioningRuleUpdate), // more granular permissions are enforced by the handler via "authorizeRuleChanges"
+		)
+
+	case http.MethodDelete + "/api/v1/provisioning/alert-rules/{UID}":
+		eval = ac.EvalAny(
+			ac.EvalPermission(ac.ActionAlertingProvisioningWrite),      // organization scope // TODO deprecated. remove in Grafana 11
+			ac.EvalPermission(ac.ActionAlertingProvisioningRuleDelete), // more granular permissions are enforced by the handler via "authorizeRuleChanges"
+		)
+	case http.MethodPut + "/api/v1/provisioning/folder/{FolderUID}/rule-groups/{Group}":
+		eval = ac.EvalAny(
+			ac.EvalPermission(ac.ActionAlertingProvisioningWrite), // organization scope, // TODO deprecated. remove in Grafana 11
+			ac.EvalPermission(ac.ActionAlertingProvisioningRuleUpdate, dashboards.ScopeFoldersProvider.GetResourceScopeUID(ac.Parameter(":FolderUID"))),
+		)
 
 	case http.MethodPut + "/api/v1/provisioning/policies",
 		http.MethodDelete + "/api/v1/provisioning/policies",
@@ -212,12 +250,11 @@ func (api *API) authorize(method, path string) web.Handler {
 		http.MethodDelete + "/api/v1/provisioning/templates/{name}",
 		http.MethodPost + "/api/v1/provisioning/mute-timings",
 		http.MethodPut + "/api/v1/provisioning/mute-timings/{name}",
-		http.MethodDelete + "/api/v1/provisioning/mute-timings/{name}",
-		http.MethodPost + "/api/v1/provisioning/alert-rules",
-		http.MethodPut + "/api/v1/provisioning/alert-rules/{UID}",
-		http.MethodDelete + "/api/v1/provisioning/alert-rules/{UID}",
-		http.MethodPut + "/api/v1/provisioning/folder/{FolderUID}/rule-groups/{Group}":
-		eval = ac.EvalPermission(ac.ActionAlertingProvisioningWrite) // organization scope
+		http.MethodDelete + "/api/v1/provisioning/mute-timings/{name}":
+		eval = ac.EvalAny(
+			ac.EvalPermission(ac.ActionAlertingProvisioningWrite),             // organization scope
+			ac.EvalPermission(ac.ActionAlertingProvisioningNotificationsRead), // organization scope
+		)
 	}
 
 	if eval != nil {
