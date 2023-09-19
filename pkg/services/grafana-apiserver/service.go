@@ -32,6 +32,7 @@ import (
 	"github.com/grafana/grafana/pkg/modules"
 	"github.com/grafana/grafana/pkg/registry"
 	contextmodel "github.com/grafana/grafana/pkg/services/contexthandler/model"
+	"github.com/grafana/grafana/pkg/services/featuremgmt"
 	"github.com/grafana/grafana/pkg/setting"
 	"github.com/grafana/grafana/pkg/web"
 )
@@ -82,6 +83,9 @@ type service struct {
 	config     *config
 	restConfig *clientrest.Config
 
+	cfg      *setting.Cfg
+	features featuremgmt.FeatureToggles
+
 	stopCh    chan struct{}
 	stoppedCh chan error
 
@@ -94,11 +98,14 @@ type service struct {
 
 func ProvideService(
 	cfg *setting.Cfg,
+	features featuremgmt.FeatureToggles,
 	rr routing.RouteRegister,
 	authz authorizer.Authorizer,
 ) (*service, error) {
 	s := &service{
 		config:     newConfig(cfg),
+		cfg:        cfg,
+		features:   features,
 		rr:         rr,
 		stopCh:     make(chan struct{}),
 		builders:   []APIGroupBuilder{},
