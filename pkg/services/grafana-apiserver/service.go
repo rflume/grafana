@@ -26,6 +26,7 @@ import (
 	"k8s.io/component-base/logs"
 	"k8s.io/klog/v2"
 
+	jsonstorage "github.com/grafana/grafana/apiserver/storage/json"
 	"github.com/grafana/grafana/pkg/api/routing"
 	"github.com/grafana/grafana/pkg/infra/appcontext"
 	"github.com/grafana/grafana/pkg/middleware"
@@ -39,6 +40,14 @@ import (
 const (
 	DefaultAPIServerIp   = "127.0.0.1"
 	DefaultAPIServerPort = 6443
+)
+
+type StorageType string
+
+const (
+	StorageTypeJson   StorageType = "json"
+	StorageTypeEtcd   StorageType = "etcd"
+	StorageTypeLegacy StorageType = "legacy"
 )
 
 var (
@@ -86,8 +95,15 @@ type RestConfigProvider interface {
 type service struct {
 	*services.BasicService
 
+<<<<<<< HEAD
 	config     *config
 	restConfig *clientrest.Config
+=======
+	restConfig *clientrest.Config
+
+	storageType  string
+	etcd_servers []string
+>>>>>>> 4bdca6bfdb (working json storage)
 
 	stopCh    chan struct{}
 	stoppedCh chan error
@@ -105,11 +121,22 @@ func ProvideService(
 	authz authorizer.Authorizer,
 ) (*service, error) {
 	s := &service{
+<<<<<<< HEAD
 		config:     newConfig(cfg),
 		rr:         rr,
 		stopCh:     make(chan struct{}),
 		builders:   []APIGroupBuilder{},
 		authorizer: authz,
+=======
+		etcd_servers: cfg.SectionWithEnvOverrides("grafana-apiserver").Key("etcd_servers").Strings(","),
+		storageType:  cfg.SectionWithEnvOverrides("grafana-apiserver").Key("storage_type").MustString(string(StorageTypeLegacy)),
+		enabled:      cfg.IsFeatureToggleEnabled(featuremgmt.FlagGrafanaAPIServer),
+		rr:           rr,
+		dataPath:     path.Join(cfg.DataPath, "k8s"),
+		stopCh:       make(chan struct{}),
+		builders:     []APIGroupBuilder{},
+		authorizer:   authz,
+>>>>>>> 4bdca6bfdb (working json storage)
 	}
 
 	// This will be used when running as a dskit service
@@ -186,17 +213,9 @@ func (s *service) start(ctx context.Context) error {
 	o.SecureServing.BindPort = s.config.port
 	o.Authentication.RemoteKubeConfigFileOptional = true
 	o.Authorization.RemoteKubeConfigFileOptional = true
-	o.Etcd.StorageConfig.Transport.ServerList = s.config.etcdServers
 
 	o.Admission = nil
 	o.CoreAPI = nil
-	if len(o.Etcd.StorageConfig.Transport.ServerList) == 0 {
-		o.Etcd = nil
-	}
-
-	if err := o.Validate(); len(err) > 0 {
-		return err[0]
-	}
 
 	serverConfig := genericapiserver.NewRecommendedConfig(Codecs)
 	serverConfig.ExternalAddress = s.config.host
@@ -226,10 +245,15 @@ func (s *service) start(ctx context.Context) error {
 		}
 	}
 
-	if o.Etcd != nil {
+	if StorageType(s.storageType) == StorageTypeEtcd {
+		o.Etcd.StorageConfig.Transport.ServerList = s.config.etcdServers
 		if err := o.Etcd.ApplyTo(&serverConfig.Config); err != nil {
 			return err
 		}
+	}
+
+	if StorageType(s.storageType) == StorageTypeJson {
+		serverConfig.RESTOptionsGetter = jsonstorage.NewRESTOptionsGetter(s.config.dataPath, o.Etcd.StorageConfig)
 	}
 
 	serverConfig.Authorization.Authorizer = s.authorizer
