@@ -10,8 +10,8 @@ import (
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	common "k8s.io/kube-openapi/pkg/common"
 
+	grafanarest "github.com/grafana/grafana/apiserver/rest"
 	grafanaapiserver "github.com/grafana/grafana/pkg/services/grafana-apiserver"
-	grafanarest "github.com/grafana/grafana/pkg/services/grafana-apiserver/rest"
 	"github.com/grafana/grafana/pkg/services/playlist"
 	"github.com/grafana/grafana/pkg/setting"
 )

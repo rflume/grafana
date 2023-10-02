@@ -3,7 +3,7 @@ package request_test
 import (
 	"testing"
 
-	grafanarequest "github.com/grafana/grafana/pkg/services/grafana-apiserver/endpoints/request"
+	grafanarequest "github.com/grafana/grafana/apiserver/endpoints/request"
 )
 
 func TestParseNamespace(t *testing.T) {

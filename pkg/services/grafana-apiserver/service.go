@@ -36,7 +36,14 @@ import (
 	"github.com/grafana/grafana/pkg/web"
 )
 
+const (
+	DefaultAPIServerIp   = "127.0.0.1"
+	DefaultAPIServerPort = 6443
+)
+
 var (
+	DefaultAPIServerHost = fmt.Sprintf("https://%s:%d", DefaultAPIServerIp, DefaultAPIServerPort)
+
 	_ Service                    = (*service)(nil)
 	_ RestConfigProvider         = (*service)(nil)
 	_ registry.BackgroundService = (*service)(nil)
@@ -220,9 +227,6 @@ func (s *service) start(ctx context.Context) error {
 	}
 
 	if o.Etcd != nil {
-		if err := o.Etcd.Complete(serverConfig.Config.StorageObjectCountTracker, serverConfig.Config.DrainedNotify(), serverConfig.Config.AddPostStartHook); err != nil {
-			return err
-		}
 		if err := o.Etcd.ApplyTo(&serverConfig.Config); err != nil {
 			return err
 		}
@@ -241,7 +245,7 @@ func (s *service) start(ctx context.Context) error {
 		openapinamer.NewDefinitionNamer(Scheme, scheme.Scheme))
 
 	// Add the custom routes to service discovery
-	serverConfig.OpenAPIV3Config.PostProcessSpec3 = getOpenAPIPostProcessor(builders)
+	//serverConfig.OpenAPIV3Config.PostProcessSpec3 = getOpenAPIPostProcessor(builders)
 
 	serverConfig.SkipOpenAPIInstallation = false
 	serverConfig.BuildHandlerChainFunc = func(delegateHandler http.Handler, c *genericapiserver.Config) http.Handler {
