@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/bwmarrin/snowflake"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -103,10 +104,9 @@ func (s *Storage) Versioner() storage.Versioner {
 // in seconds (0 means forever). If no error is returned and out is not nil, out will be
 // set to the read value from database.
 func (s *Storage) Create(ctx context.Context, key string, obj runtime.Object, out runtime.Object, ttl uint64) error {
-	filename := key + ".json"
-
+	filename := s.filePath(key)
 	if exists(filename) {
-		return apierrors.NewAlreadyExists(s.gr, s.nameFromKey(key))
+		return storage.NewKeyExistsError(key, 0)
 	}
 
 	dirname := filepath.Dir(filename)
@@ -119,12 +119,27 @@ func (s *Storage) Create(ctx context.Context, key string, obj runtime.Object, ou
 		return err
 	}
 
+	metaObj, err := meta.Accessor(obj)
+	if err != nil {
+		return err
+	}
+	metaObj.SetSelfLink("")
+
 	if err := s.Versioner().UpdateObject(obj, *generatedRV); err != nil {
 		return err
 	}
 
 	if err := writeFile(s.codec, filename, obj); err != nil {
 		return err
+	}
+
+	// set a timer to delete the file after ttl seconds
+	if ttl > 0 {
+		time.AfterFunc(time.Second*time.Duration(ttl), func() {
+			if err := s.Delete(ctx, key, s.newFunc(), &storage.Preconditions{}, func(ctx context.Context, obj runtime.Object) error { return nil }, obj); err != nil {
+				panic(err)
+			}
+		})
 	}
 
 	if err := s.Get(ctx, key, storage.GetOptions{}, out); err != nil {
@@ -152,11 +167,7 @@ func (s *Storage) Delete(
 	validateDeletion storage.ValidateObjectFunc,
 	cachedExistingObject runtime.Object,
 ) error {
-	filename := key + ".json"
-	if !exists(filename) {
-		return apierrors.NewNotFound(s.gr, s.nameFromKey(key))
-	}
-
+	filename := s.filePath(key)
 	if err := s.Get(ctx, key, storage.GetOptions{}, out); err != nil {
 		return err
 	}
@@ -212,6 +223,12 @@ func (s *Storage) Watch(ctx context.Context, key string, opts storage.ListOption
 	if err != nil {
 		return nil, err
 	}
+
+	if v.IsNil() {
+		jw.Start(p, initEvents)
+		return jw, nil
+	}
+
 	for _, obj := range v.Elem().Interface().([]runtime.Object) {
 		initEvents = append(initEvents, watch.Event{
 			Type:   watch.Added,
@@ -228,12 +245,16 @@ func (s *Storage) Watch(ctx context.Context, key string, opts storage.ListOption
 // The returned contents may be delayed, but it is guaranteed that they will
 // match 'opts.ResourceVersion' according 'opts.ResourceVersionMatch'.
 func (s *Storage) Get(ctx context.Context, key string, opts storage.GetOptions, objPtr runtime.Object) error {
-	filename := key + ".json"
+	filename := s.filePath(key)
 	if !exists(filename) {
 		if opts.IgnoreNotFound {
 			return runtime.SetZeroValue(objPtr)
 		}
-		return apierrors.NewNotFound(s.gr, s.nameFromKey(key))
+		rv, err := s.Versioner().ParseResourceVersion(opts.ResourceVersion)
+		if err != nil {
+			return err
+		}
+		return storage.NewKeyNotFoundError(key, int64(rv))
 	}
 
 	obj, err := readFile(s.codec, filename, func() runtime.Object {
@@ -335,7 +356,7 @@ func (s *Storage) GuaranteedUpdate(
 	var res storage.ResponseMeta
 	for attempt := 1; attempt <= MaxUpdateAttempts; attempt = attempt + 1 {
 		var (
-			filename = key + ".json"
+			filename = s.filePath(key)
 
 			obj     runtime.Object
 			err     error

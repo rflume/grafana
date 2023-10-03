@@ -7,49 +7,17 @@ package json
 
 import (
 	"bytes"
-	"context"
 	"os"
 	"path/filepath"
+	"strings"
 
-	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apiserver/pkg/endpoints/request"
 )
 
-// objectFilePath returns the file path for the given object.
-// The directory path is based on the object's GroupVersionKind and namespace:
-// {root}/{Group}/{Version}/{Namespace}/{Kind}/{Name}.json
-//
-// If the object doesn't have a namespace, the file path is based on the
-// object's GroupVersionKind:
-// {root}/{Group}/{Version}/{Kind}/{Name}.json
-func (s *Storage) objectFilePath(ctx context.Context, obj runtime.Object) (string, error) {
-	dir := s.objectDirPath(ctx, obj)
-	accessor, err := meta.Accessor(obj)
-	if err != nil {
-		return "", err
-	}
-	name := accessor.GetName()
-
-	return filepath.Join(dir, name+".json"), nil
-}
-
-// objectDirPath returns the directory path for the given object.
-// The directory path is based on the object's GroupVersionKind and namespace:
-// {root}/{Group}/{Version}/{Namespace}/{Kind}
-//
-// If the object doesn't have a namespace, the directory path is based on the
-// object's GroupVersionKind:
-// {root}/{Group}/{Version}/{Kind}
-func (s *Storage) objectDirPath(ctx context.Context, obj runtime.Object) string {
-	gvk := obj.GetObjectKind().GroupVersionKind()
-	p := filepath.Join(s.root, gvk.Group, gvk.Version)
-
-	if ns, ok := request.NamespaceFrom(ctx); ok {
-		p = filepath.Join(p, ns)
-	}
-
-	return filepath.Join(p, gvk.Kind)
+func (s *Storage) filePath(key string) string {
+	filename := strings.TrimPrefix(key, s.root)
+	filename += filename + ".json"
+	return filepath.Join(s.root, filename)
 }
 
 func writeFile(codec runtime.Codec, path string, obj runtime.Object) error {
