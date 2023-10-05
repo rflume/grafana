@@ -44,6 +44,9 @@ func readFile(codec runtime.Codec, path string, newFunc func() runtime.Object) (
 func readDirRecursive(codec runtime.Codec, path string, newFunc func() runtime.Object) ([]runtime.Object, error) {
 	var objs []runtime.Object
 	err := filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
 		if info.IsDir() || filepath.Ext(path) != ".json" {
 			return nil
 		}

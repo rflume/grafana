@@ -168,30 +168,67 @@ func (s *Storage) Delete(
 	cachedExistingObject runtime.Object,
 ) error {
 	filename := s.filePath(key)
-	if err := s.Get(ctx, key, storage.GetOptions{}, out); err != nil {
-		return err
-	}
-
-	if preconditions != nil {
-		if err := preconditions.Check(key, out); err != nil {
+	var currentState runtime.Object
+	var stateIsCurrent bool
+	if cachedExistingObject != nil {
+		currentState = cachedExistingObject
+	} else {
+		if err := s.Get(ctx, key, storage.GetOptions{}, currentState); err != nil {
 			return err
 		}
+		stateIsCurrent = true
 	}
 
-	if err := validateDeletion(ctx, out); err != nil {
-		return err
+	for {
+		if preconditions != nil {
+			if err := preconditions.Check(key, out); err != nil {
+				if stateIsCurrent {
+					return err
+				}
+
+				// If the state is not current, we need to re-read the state and try again.
+				if err := s.Get(ctx, key, storage.GetOptions{}, currentState); err != nil {
+					return err
+				}
+				stateIsCurrent = true
+				continue
+			}
+		}
+
+		if err := validateDeletion(ctx, out); err != nil {
+			if stateIsCurrent {
+				return err
+			}
+
+			// If the state is not current, we need to re-read the state and try again.
+			if err := s.Get(ctx, key, storage.GetOptions{}, currentState); err != nil {
+				return err
+			}
+			stateIsCurrent = true
+			continue
+		}
+
+		if err := s.Get(ctx, key, storage.GetOptions{}, out); err != nil {
+			return err
+		}
+
+		generatedRV, err := getResourceVersion()
+		if err != nil {
+			return err
+		}
+		s.Versioner().UpdateObject(out, *generatedRV)
+
+		if err := deleteFile(filename); err != nil {
+			return err
+		}
+
+		s.watchSet.notifyWatchers(watch.Event{
+			Object: out.DeepCopyObject(),
+			Type:   watch.Deleted,
+		})
+
+		return nil
 	}
-
-	if err := deleteFile(filename); err != nil {
-		return err
-	}
-
-	s.watchSet.notifyWatchers(watch.Event{
-		Object: out.DeepCopyObject(),
-		Type:   watch.Deleted,
-	})
-
-	return nil
 }
 
 // Watch begins watching the specified key. Events are decoded into API objects,
