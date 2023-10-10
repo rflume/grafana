@@ -7,6 +7,7 @@ import (
 	"os"
 	"testing"
 
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/endpoints/openapi"
@@ -26,6 +27,12 @@ import (
 	"k8s.io/sample-apiserver/pkg/cmd/server"
 	sampleopenapi "k8s.io/sample-apiserver/pkg/generated/openapi"
 	netutils "k8s.io/utils/net"
+
+	"github.com/grafana/grafana/pkg/services/featuremgmt"
+	grafanaapiserver "github.com/grafana/grafana/pkg/services/grafana-apiserver"
+	entityDB "github.com/grafana/grafana/pkg/services/store/entity/db"
+	"github.com/grafana/grafana/pkg/services/store/entity/sqlstash"
+	"github.com/grafana/grafana/pkg/setting"
 )
 
 const (
@@ -37,12 +44,43 @@ const (
 func main() {
 	ctx := context.Background()
 
-	if err := run(ctx); err != nil {
+	// TODO: add unified storage RESTOptionsGetter here
+	args := setting.CommandLineArgs{HomePath: "../../"}
+
+	cfg, err := setting.NewCfgFromArgs(args)
+	if err != nil {
+		panic(err)
+	}
+
+	features, err := featuremgmt.ProvideManagerService(cfg, nil)
+	if err != nil {
+		panic(err)
+	}
+
+	eDB, err := entityDB.ProvideEntityDB(nil, cfg, features)
+	if err != nil {
+		panic(err)
+	}
+
+	store, err := sqlstash.ProvideSQLEntityServer(eDB)
+	if err != nil {
+		panic(err)
+	}
+
+	// optsGetter := newFakeOptsGetter()
+	// optsGetter := jsonstorage.NewRESTOptionsGetter("/tmp/wardle", o.RecommendedOptions.Etcd.StorageConfig)
+
+	optsGetter := grafanaapiserver.NewRESTOptionsGetter(cfg, store, unstructured.UnstructuredJSONScheme)
+
+	// TODO: this is only needed for the fakeOptsGetter, and can be removed
+	// defer optsGetter.server.Terminate(optsGetter.t)
+
+	if err := run(ctx, optsGetter); err != nil {
 		panic(err)
 	}
 }
 
-func run(ctx context.Context) error {
+func run(ctx context.Context, optsGetter generic.RESTOptionsGetter) error {
 	o := server.NewWardleServerOptions(os.Stdout, os.Stderr)
 
 	o.RecommendedOptions.Etcd.SkipHealthEndpoints = true
@@ -72,9 +110,6 @@ func run(ctx context.Context) error {
 	if err := o.RecommendedOptions.Etcd.ApplyTo(&serverConfig.Config); err != nil {
 		return err
 	}
-
-	optsGetter := newFakeOptsGetter()
-	//optsGetter := jsonstorage.NewRESTOptionsGetter("/tmp/wardle", o.RecommendedOptions.Etcd.StorageConfig)
 
 	serverConfig.RESTOptionsGetter = wrapRESTOptionsGetter(serverConfig.RESTOptionsGetter, optsGetter)
 
