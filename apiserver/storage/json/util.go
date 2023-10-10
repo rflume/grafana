@@ -15,9 +15,14 @@ import (
 )
 
 func (s *Storage) filePath(key string) string {
-	filename := strings.TrimPrefix(key, s.root)
+	filename := strings.TrimPrefix(key, s.root) // remove root if it exists
 	filename += filename + ".json"
 	return filepath.Join(s.root, filename)
+}
+
+func (s *Storage) dirPath(key string) string {
+	p := strings.TrimPrefix(key, s.root) // remove root if it exists
+	return filepath.Join(s.root, p)
 }
 
 func writeFile(codec runtime.Codec, path string, obj runtime.Object) error {

@@ -173,10 +173,13 @@ func (s *Storage) Delete(
 	if cachedExistingObject != nil {
 		currentState = cachedExistingObject
 	} else {
-		if err := s.Get(ctx, key, storage.GetOptions{}, currentState); err != nil {
-			return err
+		getOptions := storage.GetOptions{}
+		if preconditions != nil && preconditions.ResourceVersion != nil {
+			getOptions.ResourceVersion = *preconditions.ResourceVersion
 		}
-		stateIsCurrent = true
+		if err := s.Get(ctx, key, getOptions, currentState); err == nil {
+			stateIsCurrent = true
+		}
 	}
 
 	for {
@@ -201,10 +204,9 @@ func (s *Storage) Delete(
 			}
 
 			// If the state is not current, we need to re-read the state and try again.
-			if err := s.Get(ctx, key, storage.GetOptions{}, currentState); err != nil {
-				return err
+			if err := s.Get(ctx, key, storage.GetOptions{}, currentState); err == nil {
+				stateIsCurrent = true
 			}
-			stateIsCurrent = true
 			continue
 		}
 
@@ -334,7 +336,9 @@ func (s *Storage) GetList(ctx context.Context, key string, opts storage.ListOpti
 		s.Versioner().UpdateObject(listObj, resourceVersionInt)
 	}
 
-	objs, err := readDirRecursive(s.codec, key, s.newFunc)
+	dir := s.dirPath(key)
+
+	objs, err := readDirRecursive(s.codec, dir, s.newFunc)
 	if err != nil {
 		return err
 	}

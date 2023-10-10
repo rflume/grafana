@@ -96,78 +96,102 @@ func checkStorageInvariants(ctx context.Context, t *testing.T, key string) {
 }
 
 func TestCreate(t *testing.T) {
-	ctx, store := testSetup(t)
+	ctx, store, teardown := testSetup(t)
+	t.Cleanup(teardown)
 	storagetesting.RunTestCreate(ctx, t, store, checkStorageInvariants)
 }
 
 func TestCreateWithTTL(t *testing.T) {
-	ctx, store := testSetup(t)
+	ctx, store, teardown := testSetup(t)
+	t.Cleanup(teardown)
 	storagetesting.RunTestCreateWithTTL(ctx, t, store)
 }
 
 func TestCreateWithKeyExist(t *testing.T) {
-	ctx, store := testSetup(t)
+	ctx, store, teardown := testSetup(t)
+	t.Cleanup(teardown)
 	storagetesting.RunTestCreateWithKeyExist(ctx, t, store)
 }
 
 func TestGet(t *testing.T) {
-	ctx, store := testSetup(t)
+	ctx, store, teardown := testSetup(t)
+	t.Cleanup(teardown)
 	storagetesting.RunTestGet(ctx, t, store)
 }
 
 func TestUnconditionalDelete(t *testing.T) {
-	ctx, store := testSetup(t)
+	ctx, store, teardown := testSetup(t)
+	t.Cleanup(teardown)
+	storagetesting.RunTestCreateWithKeyExist(ctx, t, store)
+	ctx, store, teardown = testSetup(t)
+	t.Cleanup(teardown)
+	storagetesting.RunTestCreate(ctx, t, store, checkStorageInvariants)
+	ctx, store, teardown = testSetup(t)
+	t.Cleanup(teardown)
+	storagetesting.RunTestCreateWithTTL(ctx, t, store)
+	ctx, store, teardown = testSetup(t)
+	t.Cleanup(teardown)
 	storagetesting.RunTestUnconditionalDelete(ctx, t, store)
 }
 
 func TestConditionalDelete(t *testing.T) {
-	ctx, store := testSetup(t)
+	ctx, store, teardown := testSetup(t)
+	t.Cleanup(teardown)
 	storagetesting.RunTestConditionalDelete(ctx, t, store)
 }
 
 func TestDeleteWithSuggestion(t *testing.T) {
-	ctx, store := testSetup(t)
+	ctx, store, teardown := testSetup(t)
+	t.Cleanup(teardown)
 	storagetesting.RunTestDeleteWithSuggestion(ctx, t, store)
 }
 
 func TestDeleteWithSuggestionAndConflict(t *testing.T) {
-	ctx, store := testSetup(t)
+	ctx, store, teardown := testSetup(t)
+	t.Cleanup(teardown)
 	storagetesting.RunTestDeleteWithSuggestionAndConflict(ctx, t, store)
 }
 
 func TestDeleteWithSuggestionOfDeletedObject(t *testing.T) {
-	ctx, store := testSetup(t)
+	ctx, store, teardown := testSetup(t)
+	t.Cleanup(teardown)
 	storagetesting.RunTestDeleteWithSuggestionOfDeletedObject(ctx, t, store)
 }
 
 func TestValidateDeletionWithSuggestion(t *testing.T) {
-	ctx, store := testSetup(t)
+	ctx, store, teardown := testSetup(t)
+	t.Cleanup(teardown)
 	storagetesting.RunTestValidateDeletionWithSuggestion(ctx, t, store)
 }
 
 func TestPreconditionalDeleteWithSuggestion(t *testing.T) {
-	ctx, store := testSetup(t)
+	ctx, store, teardown := testSetup(t)
+	t.Cleanup(teardown)
 	storagetesting.RunTestPreconditionalDeleteWithSuggestion(ctx, t, store)
 }
 
 func TestList(t *testing.T) {
-	ctx, store := testSetupWithJSONStorage(t)
+	ctx, store, teardown := testSetupWithJSONStorage(t)
+	t.Cleanup(teardown)
 	storagetesting.RunTestList(ctx, t, store, compactStorage(), true)
 }
 
 func TestListWithListFromCache(t *testing.T) {
 	defer featuregatetesting.SetFeatureGateDuringTest(t, utilfeature.DefaultFeatureGate, features.ConsistentListFromCache, true)()
-	ctx, store := testSetupWithJSONStorage(t)
+	ctx, store, teardown := testSetupWithJSONStorage(t)
+	t.Cleanup(teardown)
 	storagetesting.RunTestList(ctx, t, store, compactStorage(), true)
 }
 
 func TestListWithoutPaging(t *testing.T) {
-	ctx, store := testSetup(t, withoutPaging)
+	ctx, store, teardown := testSetup(t, withoutPaging)
+	t.Cleanup(teardown)
 	storagetesting.RunTestListWithoutPaging(ctx, t, store)
 }
 
 func TestGetListNonRecursive(t *testing.T) {
-	ctx, store := testSetup(t)
+	ctx, store, teardown := testSetup(t)
+	t.Cleanup(teardown)
 	storagetesting.RunTestGetListNonRecursive(ctx, t, store)
 }
 
@@ -176,22 +200,26 @@ func checkStorageCalls(t *testing.T, pageSize, estimatedProcessedObjects uint64)
 }
 
 func TestListContinuation(t *testing.T) {
-	ctx, store := testSetup(t)
+	ctx, store, teardown := testSetup(t)
+	t.Cleanup(teardown)
 	storagetesting.RunTestListContinuation(ctx, t, store, checkStorageCalls)
 }
 
 func TestListPaginationRareObject(t *testing.T) {
-	ctx, store := testSetup(t)
+	ctx, store, teardown := testSetup(t)
+	t.Cleanup(teardown)
 	storagetesting.RunTestListPaginationRareObject(ctx, t, store, checkStorageCalls)
 }
 
 func TestListContinuationWithFilter(t *testing.T) {
-	ctx, store := testSetup(t)
+	ctx, store, teardown := testSetup(t)
+	t.Cleanup(teardown)
 	storagetesting.RunTestListContinuationWithFilter(ctx, t, store, checkStorageCalls)
 }
 
 func TestListInconsistentContinuation(t *testing.T) {
-	ctx, store := testSetup(t)
+	ctx, store, teardown := testSetup(t)
+	t.Cleanup(teardown)
 
 	// TODO(#109831): Enable use of this by setting compaction.
 	storagetesting.RunTestListInconsistentContinuation(ctx, t, store, nil)
@@ -206,7 +234,8 @@ func TestGuaranteedUpdate(t *testing.T) {
 }
 
 func TestGuaranteedUpdateWithTTL(t *testing.T) {
-	ctx, store := testSetup(t)
+	ctx, store, teardown := testSetup(t)
+	t.Cleanup(teardown)
 	storagetesting.RunTestGuaranteedUpdateWithTTL(ctx, t, store)
 }
 
@@ -215,12 +244,14 @@ func TestGuaranteedUpdateChecksStoredData(t *testing.T) {
 }
 
 func TestGuaranteedUpdateWithConflict(t *testing.T) {
-	ctx, store := testSetup(t)
+	ctx, store, teardown := testSetup(t)
+	t.Cleanup(teardown)
 	storagetesting.RunTestGuaranteedUpdateWithConflict(ctx, t, store)
 }
 
 func TestGuaranteedUpdateWithSuggestionAndConflict(t *testing.T) {
-	ctx, store := testSetup(t)
+	ctx, store, teardown := testSetup(t)
+	t.Cleanup(teardown)
 	storagetesting.RunTestGuaranteedUpdateWithSuggestionAndConflict(ctx, t, store)
 }
 
@@ -229,32 +260,38 @@ func TestTransformationFailure(t *testing.T) {
 }
 
 func TestCount(t *testing.T) {
-	ctx, store := testSetup(t)
+	ctx, store, teardown := testSetup(t)
+	t.Cleanup(teardown)
 	storagetesting.RunTestCount(ctx, t, store)
 }
 
 func TestWatch(t *testing.T) {
-	ctx, store := testSetup(t)
+	ctx, store, teardown := testSetup(t)
+	t.Cleanup(teardown)
 	storagetesting.RunTestWatch(ctx, t, store)
 }
 
 func TestWatchFromZero(t *testing.T) {
-	ctx, store := testSetupWithJSONStorage(t)
+	ctx, store, teardown := testSetupWithJSONStorage(t)
+	t.Cleanup(teardown)
 	storagetesting.RunTestWatchFromZero(ctx, t, store, compactStorage())
 }
 
 func TestDeleteTriggerWatch(t *testing.T) {
-	ctx, store := testSetup(t)
+	ctx, store, teardown := testSetup(t)
+	t.Cleanup(teardown)
 	storagetesting.RunTestDeleteTriggerWatch(ctx, t, store)
 }
 
 func TestWatchFromNonZero(t *testing.T) {
-	ctx, store := testSetup(t)
+	ctx, store, teardown := testSetup(t)
+	t.Cleanup(teardown)
 	storagetesting.RunTestWatchFromNonZero(ctx, t, store)
 }
 
 func TestDelayedWatchDelivery(t *testing.T) {
-	ctx, store := testSetup(t)
+	ctx, store, teardown := testSetup(t)
+	t.Cleanup(teardown)
 	storagetesting.RunTestDelayedWatchDelivery(ctx, t, store)
 }
 
@@ -267,42 +304,50 @@ func TestWatchContextCancel(t *testing.T) {
 }
 
 func TestWatcherTimeout(t *testing.T) {
-	ctx, store := testSetup(t)
+	ctx, store, teardown := testSetup(t)
+	t.Cleanup(teardown)
 	storagetesting.RunTestWatcherTimeout(ctx, t, store)
 }
 
 func TestWatchDeleteEventObjectHaveLatestRV(t *testing.T) {
-	ctx, store := testSetup(t)
+	ctx, store, teardown := testSetup(t)
+	t.Cleanup(teardown)
 	storagetesting.RunTestWatchDeleteEventObjectHaveLatestRV(ctx, t, store)
 }
 
 func TestWatchInitializationSignal(t *testing.T) {
-	ctx, store := testSetup(t)
+	ctx, store, teardown := testSetup(t)
+	t.Cleanup(teardown)
 	storagetesting.RunTestWatchInitializationSignal(ctx, t, store)
 }
 
 func TestClusterScopedWatch(t *testing.T) {
-	ctx, store := testSetup(t, withClusterScopedKeyFunc, withSpecNodeNameIndexerFuncs)
+	ctx, store, teardown := testSetup(t, withClusterScopedKeyFunc, withSpecNodeNameIndexerFuncs)
+	t.Cleanup(teardown)
 	storagetesting.RunTestClusterScopedWatch(ctx, t, store)
 }
 
 func TestNamespaceScopedWatch(t *testing.T) {
-	ctx, store := testSetup(t, withSpecNodeNameIndexerFuncs)
+	ctx, store, teardown := testSetup(t, withSpecNodeNameIndexerFuncs)
+	t.Cleanup(teardown)
 	storagetesting.RunTestNamespaceScopedWatch(ctx, t, store)
 }
 
 func TestWatchDispatchBookmarkEvents(t *testing.T) {
-	ctx, store := testSetup(t)
+	ctx, store, teardown := testSetup(t)
+	t.Cleanup(teardown)
 	storagetesting.RunTestWatchDispatchBookmarkEvents(ctx, t, store)
 }
 
 func TestWatchBookmarksWithCorrectResourceVersion(t *testing.T) {
-	ctx, store := testSetup(t)
+	ctx, store, teardown := testSetup(t)
+	t.Cleanup(teardown)
 	storagetesting.RunTestOptionalWatchBookmarksWithCorrectResourceVersion(ctx, t, store)
 }
 
 func TestSendInitialEventsBackwardCompatibility(t *testing.T) {
-	ctx, store := testSetup(t)
+	ctx, store, teardown := testSetup(t)
+	t.Cleanup(teardown)
 	storagetesting.RunSendInitialEventsBackwardCompatibility(ctx, t, store)
 }
 
@@ -357,16 +402,22 @@ func withoutPaging(options *setupOptions) {
 	options.pagingEnabled = false
 }
 
-func testSetup(t *testing.T, opts ...setupOption) (context.Context, storage.Interface) {
-	ctx, store := testSetupWithJSONStorage(t, opts...)
-	return ctx, store
+func testSetup(t *testing.T, opts ...setupOption) (context.Context, storage.Interface, tearDownFunc) {
+	ctx, store, teardown := testSetupWithJSONStorage(t, opts...)
+	return ctx, store, teardown
 }
 
-func testSetupWithJSONStorage(t *testing.T, opts ...setupOption) (context.Context, storage.Interface) {
+func testSetupWithJSONStorage(t *testing.T, opts ...setupOption) (context.Context, storage.Interface, tearDownFunc) {
 	setupOpts := setupOptions{}
 	opts = append([]setupOption{withDefaults}, opts...)
 	for _, opt := range opts {
 		opt(&setupOpts)
+	}
+
+	cleanup := func() {
+		if err := os.RemoveAll(setupOpts.resourcePrefix); err != nil {
+			t.Fatalf("unexpected error: %s", err.Error())
+		}
 	}
 
 	var cacher *cache.Indexers
@@ -401,7 +452,7 @@ func testSetupWithJSONStorage(t *testing.T, opts ...setupOption) (context.Contex
 	//	t.Fatalf("Failed to inject list errors: %v", err)
 	//}
 
-	return ctx, wrappedStorage
+	return ctx, wrappedStorage, cleanup
 }
 
 func compactStorage() storagetesting.Compaction {
