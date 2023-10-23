@@ -3,9 +3,9 @@ import { css, cx } from '@emotion/css';
 import React, { useLayoutEffect } from 'react';
 
 import { GrafanaTheme2, PageLayoutType } from '@grafana/data';
-import { config } from '@grafana/runtime';
 import { CustomScrollbar, useStyles2 } from '@grafana/ui';
 import { useGrafana } from 'app/core/context/GrafanaContext';
+import { shadowMode } from 'app/experiment';
 
 import { PageContents } from './PageContents';
 import { PageHeader } from './PageHeader';
@@ -83,6 +83,10 @@ export const Page: PageType = ({
 Page.Contents = PageContents;
 
 const getStyles = (theme: GrafanaTheme2) => {
+  const shadow = theme.isDark
+    ? `inset 0 0.6px 1.5px rgb(0 0 0), inset 0 2px 4px rgb(0 0 0 / 40%), inset 0 5px 10px rgb(0 0 0 / 23%)`
+    : 'inset 0 4px 8px rgb(0 0 0 / 4%)';
+
   return {
     wrapper: css({
       label: 'page-wrapper',
@@ -97,19 +101,16 @@ const getStyles = (theme: GrafanaTheme2) => {
       flexGrow: 1,
     }),
     pageInner: css({
+      boxShadow: shadowMode === 'inset' ? shadow : undefined,
       label: 'page-inner',
       padding: theme.spacing(2),
-      borderRadius: theme.shape.radius.default,
-      border: `1px solid ${theme.colors.border.weak}`,
       borderBottom: 'none',
       background: theme.colors.background.primary,
       display: 'flex',
       flexDirection: 'column',
       flexGrow: 1,
-      margin: theme.spacing(0, 0, 0, 0),
 
       [theme.breakpoints.up('md')]: {
-        margin: theme.spacing(2, 2, 0, config.featureToggles.dockedMegaMenu ? 2 : 1),
         padding: theme.spacing(3),
       },
     }),

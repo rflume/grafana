@@ -6,6 +6,7 @@ import { GrafanaTheme2, PageLayoutType } from '@grafana/data';
 import { useStyles2, LinkButton, useTheme2 } from '@grafana/ui';
 import config from 'app/core/config';
 import { useGrafana } from 'app/core/context/GrafanaContext';
+import { shadowMode } from 'app/experiment';
 import { CommandPalette } from 'app/features/commandPalette/CommandPalette';
 import { KioskMode } from 'app/types';
 
@@ -110,6 +111,8 @@ const getStyles = (theme: GrafanaTheme2) => {
     ? `0 0.6px 1.5px rgb(0 0 0), 0 2px 4px rgb(0 0 0 / 40%), 0 5px 10px rgb(0 0 0 / 23%)`
     : '0 4px 8px rgb(0 0 0 / 4%)';
 
+  const showShadow = shadowMode !== 'none' && shadowMode !== 'inset';
+
   return {
     content: css({
       display: 'flex',
@@ -141,7 +144,7 @@ const getStyles = (theme: GrafanaTheme2) => {
       zIndex: theme.zIndex.navbarFixed,
       left: 0,
       right: 0,
-      boxShadow: shadow,
+      boxShadow: showShadow ? shadow : undefined,
       background: theme.colors.background.primary,
       flexDirection: 'column',
       borderBottom: `1px solid ${theme.colors.border.weak}`,
