@@ -14816,16 +14816,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"esbuild-plugin-browserslist@npm:^0.8.0":
-  version: 0.8.1
-  resolution: "esbuild-plugin-browserslist@npm:0.8.1"
+"esbuild-plugin-browserslist@npm:^0.10.0":
+  version: 0.10.0
+  resolution: "esbuild-plugin-browserslist@npm:0.10.0"
   dependencies:
     debug: ^4.3.4
     zod: ^3.21.4
   peerDependencies:
     browserslist: ^4.21.8
-    esbuild: ~0.18.2
-  checksum: 92e5fbdbeb71155fa6f438286d86217101e456e302f7c32e05c446576dedc5dcf7a9daf1a7317f26e210cd8598a0b4f4f04ef3582788822ba3958eec73a706cd
+    esbuild: ~0.19.2
+  checksum: 56a3ecce446e7600179c047ac9866bdb787119e3fe3d38708a412b3694db9691f6134f66e8ebed73c57bbad266716c68a7f8a9ebb3470e8e5b1b4edce996c27c
   languageName: node
   linkType: hard
 
@@ -17289,7 +17289,7 @@ __metadata:
     emotion: 11.0.0
     esbuild: 0.18.12
     esbuild-loader: 3.0.1
-    esbuild-plugin-browserslist: ^0.8.0
+    esbuild-plugin-browserslist: ^0.10.0
     eslint: 8.52.0
     eslint-config-prettier: 8.8.0
     eslint-plugin-import: ^2.26.0
