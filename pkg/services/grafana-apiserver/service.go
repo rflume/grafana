@@ -242,9 +242,9 @@ func (s *service) start(ctx context.Context) error {
 
 	if o.Etcd != nil {
 		/*
-		if err := o.Etcd.Complete(serverConfig.Config.StorageObjectCountTracker, serverConfig.Config.DrainedNotify(), serverConfig.Config.AddPostStartHook); err != nil {
-			return err
-		}
+			if err := o.Etcd.Complete(serverConfig.Config.StorageObjectCountTracker, serverConfig.Config.DrainedNotify(), serverConfig.Config.AddPostStartHook); err != nil {
+				return err
+			}
 		*/
 		if err := o.Etcd.ApplyTo(&serverConfig.Config); err != nil {
 			return err
@@ -264,7 +264,7 @@ func (s *service) start(ctx context.Context) error {
 		openapinamer.NewDefinitionNamer(Scheme, scheme.Scheme))
 
 	// Add the custom routes to service discovery
-	serverConfig.OpenAPIV3Config.PostProcessSpec3 = getOpenAPIPostProcessor(builders)
+	// serverConfig.OpenAPIV3Config.PostProcessSpec3 = getOpenAPIPostProcessor(builders)
 
 	serverConfig.SkipOpenAPIInstallation = false
 	serverConfig.BuildHandlerChainFunc = func(delegateHandler http.Handler, c *genericapiserver.Config) http.Handler {
