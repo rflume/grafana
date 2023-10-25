@@ -139,7 +139,7 @@ Content-Type: application/json
 **Example Request**:
 
 ```http
-PUT /api/playlists/1 HTTP/1.1
+POST /api/playlists/ HTTP/1.1
 Accept: application/json
 Content-Type: application/json
 Authorization: Bearer eyJrIjoiT0tTcG1pUlY2RnVKZTFVaDFsNFZXdE9ZWmNrMkZYbk
